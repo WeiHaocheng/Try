@@ -2,20 +2,14 @@
 #define BUFFER_ITERATOR_H_
 
 #include "db/version_edit.h"
-#include "table/block.h"
 #include "leveldb/slice.h"
 #include "leveldb/comparator.h"
 #include "db/dbformat.h"
+#include "table/two_level_iterator.h"
 #include <vector>
 #include <assert.h>
 
 namespace leveldb {
-
-//struct BufferNode;
-//struct Buffer;
-//class Block;
-//class Slice;
-//class Block::Iter;
 
 
 class BufferIterator : public Iterator {
@@ -76,5 +70,6 @@ class BufferIterator : public Iterator {
 
 
 }
+
 
 #endif

@@ -8,6 +8,9 @@
 #include "table/block.h"
 #include "table/format.h"
 #include "table/iterator_wrapper.h"
+#include "db/version_edit.h"
+#include "leveldb/slice.h"
+#include <assert.h>
 
 namespace leveldb {
 
@@ -72,6 +75,68 @@ class TwoLevelIterator: public Iterator {
   // "index_value" passed to block_function_ to create the data_iter_.
   std::string data_block_handle_;
 };
+
+class BufferNodeIterator {
+ public:
+  BufferNodeIterator(BufferNode* buffernode, TwoLevelIterator* iterator)
+      :buffernode_(buffernode), iterator_(iterator) { }
+
+  virtual bool Valid() const;
+
+  virtual Slice key() const;
+
+  virtual void Next();
+
+  virtual void Prev();
+
+  virtual void Seek(const Slice& target);
+
+  virtual void SeekToFirst();
+  
+  virtual void SeekToLast(); 
+
+
+
+
+ private:
+  BufferNode* buffernode_;
+  TwoLevelIterator* iterator_;
+};
+
+
+bool BufferNodeIterator::Valid() const{
+  assert(iterator_->Valid());
+  Slice k = key();
+  return (k.compare(buffernode_->smallest.Encode()) >= 0) 
+      && (k.compare(buffernode_->largest.Encode()) <= 0);
+}
+
+Slice BufferNodeIterator::key() const {
+  assert(Valid());
+  return iterator_->key();
+}
+
+void BufferNodeIterator::Next() {
+  assert(Valid());
+  iterator_->Next();
+}
+
+void BufferNodeIterator::Prev() {
+  assert(Valid());
+  iterator_->Prev();
+}
+
+void BufferNodeIterator::Seek(const Slice& target) {
+  assert((target.compare(buffernode_->smallest.Encode() >= 0)) 
+      && (target.compare(buffernode_->largest.Encode() <= 0)));
+  iterator_->Seek(target);
+}
+
+void BufferNodeIterator::SeekToFirst() { iterator_->Seek((buffernode_->smallest).Encode()); }
+  
+void BufferNodeIterator::SeekToLast() { iterator_->Seek((buffernode_->largest).Encode()); }
+
+
 
 TwoLevelIterator::TwoLevelIterator(
     Iterator* index_iter,
