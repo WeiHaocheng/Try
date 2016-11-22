@@ -76,7 +76,7 @@ class TwoLevelIterator: public Iterator {
   std::string data_block_handle_;
 };
 
-class BufferNodeIterator {
+class BufferNodeIterator : public Iterator {
  public:
   BufferNodeIterator(BufferNode* buffernode, TwoLevelIterator* iterator)
       :buffernode_(buffernode), iterator_(iterator) { }
@@ -95,13 +95,18 @@ class BufferNodeIterator {
   
   virtual void SeekToLast(); 
 
-
+  bool SeekResult();
 
 
  private:
   BufferNode* buffernode_;
   TwoLevelIterator* iterator_;
+  bool seek_result;
 };
+
+bool BufferNodeIterator::SeekResult(){
+  return seek_result; 
+}
 
 
 bool BufferNodeIterator::Valid() const{
@@ -127,9 +132,15 @@ void BufferNodeIterator::Prev() {
 }
 
 void BufferNodeIterator::Seek(const Slice& target) {
-  assert((target.compare(buffernode_->smallest.Encode() >= 0)) 
-      && (target.compare(buffernode_->largest.Encode() <= 0)));
+  seek_result = true;
+  if((target.compare(buffernode_->smallest.Encode()) < 0) 
+      && (target.compare(buffernode_->largest.Encode()) > 0)){
+	seek_result = false;
+    return;
+  }
   iterator_->Seek(target);
+  if (target.compare(iterator_->key()) != 0)
+    seek_result = false;
 }
 
 void BufferNodeIterator::SeekToFirst() { iterator_->Seek((buffernode_->smallest).Encode()); }
