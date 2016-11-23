@@ -14,6 +14,7 @@ namespace leveldb {
 
 class BufferIterator : public Iterator {
  public:
+  //when index_ == buffer->nodes.size(), then index_ is unvalid
   BufferIterator(Buffer* buffer, InternalKeyComparator* icmp)
       :buffer_(buffer), icmp_(icmp), index_((buffer->nodes).size()) { }
 
@@ -29,6 +30,11 @@ class BufferIterator : public Iterator {
     index_++;
   }
 
+  bool SeekResult(Slice& target){
+  	if (!Valid()) return false;
+	return (icmp_->InternalKeyComparator::Compare(key(), target)) == 0; 
+  }
+
   virtual void Prev() {
     assert(Valid());
     index_ = (index_ == 0) ? (buffer_->nodes).size() : (index_ - 1);
@@ -37,10 +43,13 @@ class BufferIterator : public Iterator {
   virtual void Seek(const Slice& target){
     index_ = FindNode(icmp_, buffer_->nodes, target);
   }
+  
+  //SeekToFirst do not promise iterator is valid
+  virtual void SeekToFirst() {
+	  index_ = 0;
+  }
 
-  virtual void SeekToFirst() { index_ = 0; }
-
-  virtual void SeekToLast() { index_ = (buffer_->nodes).empty() ? 0 : (buffer_->nodes).size() - 1; }
+  virtual void SeekToLast() { index_ = ((buffer_->nodes).empty()) ? 0 : (buffer_->nodes).size() - 1; }
 
 
  private:
@@ -52,7 +61,7 @@ class BufferIterator : public Iterator {
 	while (left < right) {
 	  uint32_t mid = (left + right) / 2;
 	  const BufferNode node = nodes[mid];
-	  if (icmp->InternalKeyComparator::Compare(buffer_->largest.Encode(), key) < 0){
+	  if (icmp->InternalKeyComparator::Compare(node.largest.Encode(), key) < 0){
 	    left = mid + 1;
 	  } else {
 	    right = mid;
