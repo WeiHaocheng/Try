@@ -1,3 +1,4 @@
+#include <iostream>
 #include "db/buffer_iterator.h"
 #include <string>
 #include "util/testharness.h"
@@ -20,7 +21,7 @@ bool nodecompare(const BufferNode &a, const BufferNode &b){
 
 class BufferIteratorTest { };
 
-TEST(BufferIteratorTest, Empty) {
+TEST(BufferIteratorTest, BIteratorEmpty) {
   //empty buffer
   Buffer buffer;
   InternalKeyComparator icmp(BytewiseComparator());	
@@ -34,31 +35,27 @@ TEST(BufferIteratorTest, Empty) {
   ASSERT_TRUE(!bIter.Valid());
 }
 
-TEST(BufferIteratorTest, InsertAndLookUp){
+TEST(BufferIteratorTest, BIteratorInsertAndLookUp){
   Buffer buffer;
   InternalKeyComparator icmp(BytewiseComparator());
-  srand((unsigned)time(NULL));
-  const int N = 1000;
+  const int N = 3000;
   const int R = 5000;
   SequenceNumber s = 1;
-  ValueType t = 0x1;
+  ValueType t = kTypeValue;
   BufferNode bnode;
-  for (int i =0;i < N;++i){
+  for (int i =1000;i < N;i+=3){
 	//insert N buffernode into buffer
 	bnode.size = 100;
 	bnode.number = 1;
 	char tmp[5];
-    itoa(rand() % R, tmp, 10);
+    snprintf(tmp, sizeof(tmp), "%d", i);
 	InternalKey smallest(Slice(tmp), s, t);
-    itoa(rand() % R, tmp, 10);
+    snprintf(tmp, sizeof(tmp), "%d", i + 2);
 	InternalKey largest(Slice(tmp), s, t);
-	if (icmp.InternalKeyComparator::Compare(smallest.Encode(), largest.Encode()) > 0){
-	  InternalKey tmpkey = largest;
-	  smallest = tmpkey;
-	  largest = smallest;
-	}
 	bnode.smallest = smallest;
 	bnode.largest = largest;
+	ASSERT_TRUE(icmp.Compare(bnode.smallest.Encode(), bnode.largest.Encode()) <= 0);
+	buffer.nodes.push_back(bnode);
   }
   //iterator need buffer to be sorted
   std::sort(buffer.nodes.begin(), buffer.nodes.end(), nodecompare);
@@ -73,7 +70,7 @@ TEST(BufferIteratorTest, InsertAndLookUp){
   ASSERT_TRUE(bIter.Valid());
 
   bIter.Seek(bnode.largest.Encode());
-  ASSERT_TRUE(bIter.SeekResult());
+  ASSERT_TRUE(bIter.SeekResult(bnode.largest.Encode()));
   ASSERT_TRUE(icmp.Compare(bIter.key(), bnode.largest.Encode()) == 0);
 
 
@@ -81,13 +78,20 @@ TEST(BufferIteratorTest, InsertAndLookUp){
 
 class BufferNodeIteratorTest { };
 
-TEST(BufferNodeIteratorTest, Empty){
+/*
+ *
+TEST(BufferNodeIteratorTest, BNIteratorEmpty){
 
 }
 
-TEST(BufferNodeIteratorTest, InsertAndLoopUp){
+TEST(BufferNodeIteratorTest, BNIteratorInsertAndLoopUp){
 
 }
+
+*/
+
+}
+
 
 int main(int argc, char** argv){
   return leveldb::test::RunAllTests();
@@ -96,4 +100,3 @@ int main(int argc, char** argv){
 
 
 	
-}

@@ -1,6 +1,7 @@
 #ifndef BUFFER_ITERATOR_H_
 #define BUFFER_ITERATOR_H_
 
+#include "leveldb/status.h"
 #include "db/version_edit.h"
 #include "leveldb/slice.h"
 #include "leveldb/comparator.h"
@@ -25,6 +26,12 @@ class BufferIterator : public Iterator {
     assert(Valid());
 	return (buffer_->nodes)[index_].largest.Encode();
   }
+  
+  //never use this function
+  virtual Status status() const { return Status::OK(); }
+  
+  //never use this function 
+  virtual Slice value() const { return Slice(""); }
 
   BufferNode& Node() const {
 	assert(Valid());
@@ -36,7 +43,7 @@ class BufferIterator : public Iterator {
     index_++;
   }
 
-  bool SeekResult(Slice& target){
+  bool SeekResult(Slice target){
   	if (!Valid()) return false;
 	Slice smallest = (buffer_->nodes)[index_].smallest.Encode();
 	Slice largest = (buffer_->nodes)[index_].largest.Encode();
