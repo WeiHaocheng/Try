@@ -8,6 +8,7 @@
 #include "table/two_level_iterator.h"
 #include <vector>
 #include <assert.h>
+#include <string>
 
 namespace leveldb {
 
@@ -25,6 +26,11 @@ class BufferIterator : public Iterator {
 	return (buffer_->nodes)[index_].largest.Encode();
   }
 
+  BufferNode& Node() const {
+	assert(Valid());
+    return (buffer_->nodes)[index_];
+  }
+
   virtual void Next() { 
     assert(Valid());
     index_++;
@@ -32,7 +38,10 @@ class BufferIterator : public Iterator {
 
   bool SeekResult(Slice& target){
   	if (!Valid()) return false;
-	return (icmp_->InternalKeyComparator::Compare(key(), target)) == 0; 
+	Slice smallest = (buffer_->nodes)[index_].smallest.Encode();
+	Slice largest = (buffer_->nodes)[index_].largest.Encode();
+	return (icmp_->InternalKeyComparator::Compare(smallest, target) <= 0)
+		&& (icmp_->InternalKeyComparator::Compare(largest, target) >= 0); 
   }
 
   virtual void Prev() {
@@ -54,6 +63,7 @@ class BufferIterator : public Iterator {
 
  private:
 
+  //require: buffer is sorted.
   int FindNode(const InternalKeyComparator* icmp, const std::vector<BufferNode>& nodes, const Slice& key) {
     //binary search
     uint32_t left = 0;
@@ -63,8 +73,10 @@ class BufferIterator : public Iterator {
 	  const BufferNode node = nodes[mid];
 	  if (icmp->InternalKeyComparator::Compare(node.largest.Encode(), key) < 0){
 	    left = mid + 1;
-	  } else {
+	  } else if (icmp->InternalKeyComparator::Compare(node.smallest.Encode(), key) > 0){
 	    right = mid;
+	  } else {
+        return mid;
 	  }
 	}
 	return right;

@@ -9,6 +9,7 @@
 #include <utility>
 #include <vector>
 #include "db/dbformat.h"
+#include <iterator>
 
 namespace leveldb {
 
@@ -50,6 +51,7 @@ struct Buffer{
 	InternalKey largest;
 	uint64_t size;
 };
+
 
 class VersionEdit {
  public:

@@ -111,7 +111,7 @@ bool BufferNodeIterator::SeekResult(){
 
 bool BufferNodeIterator::Valid() const{
   assert(iterator_->Valid());
-  Slice k = key();
+  Slice k = iterator_->key();
   return (k.compare(buffernode_->smallest.Encode()) >= 0) 
       && (k.compare(buffernode_->largest.Encode()) <= 0);
 }
