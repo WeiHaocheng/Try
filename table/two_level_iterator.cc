@@ -104,6 +104,8 @@ class BufferNodeIterator : public Iterator {
   bool seek_result;
 };
 
+
+
 bool BufferNodeIterator::SeekResult(){
   return seek_result; 
 }
@@ -147,6 +149,63 @@ void BufferNodeIterator::SeekToFirst() { iterator_->Seek((buffernode_->smallest)
   
 void BufferNodeIterator::SeekToLast() { iterator_->Seek((buffernode_->largest).Encode()); }
 
+class BufferTwoLevelIterator : public Iterator {
+ public:
+  BufferTwoLevelIterator(BufferNode* buffernode, TwoLevelIterator* iterator)
+      :buffernode_(buffernode), iterator_(iterator) { }
+
+  virtual bool Valid() const;
+
+  virtual Slice key() const;
+
+  virtual void Next();
+
+  virtual void Prev();
+
+  virtual void Seek(const Slice& target);
+
+  virtual void SeekToFirst();
+  
+  virtual void SeekToLast(); 
+
+  bool SeekResult();
+
+
+ private:
+
+
+
+};
+
+
+
+bool BufferTwoLevelIterator::SeekResult(){
+
+}
+
+
+bool BufferTwoLevelIterator::Valid() const{
+
+}
+
+Slice BufferTwoLevelIterator::key() const {
+
+}
+
+void BufferTwoLevelIterator::Next() {
+
+}
+
+void BufferTwoLevelIterator::Prev() {
+
+}
+
+void BufferTwoLevelIterator::Seek(const Slice& target) {
+}
+
+void BufferTwoLevelIterator::SeekToFirst() {  }
+  
+void BufferTwoLevelIterator::SeekToLast() {  }
 
 
 TwoLevelIterator::TwoLevelIterator(

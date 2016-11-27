@@ -58,7 +58,6 @@ TEST(BufferIteratorTest, BIteratorInsertAndLookUp){
 	buffer.nodes.push_back(bnode);
   }
   //iterator need buffer to be sorted
-  std::sort(buffer.nodes.begin(), buffer.nodes.end(), nodecompare);
   
   BufferIterator bIter(&buffer, &icmp);
   ASSERT_TRUE(!bIter.Valid());
@@ -70,7 +69,7 @@ TEST(BufferIteratorTest, BIteratorInsertAndLookUp){
   ASSERT_TRUE(bIter.Valid());
 
   bIter.Seek(bnode.largest.Encode());
-  ASSERT_TRUE(bIter.SeekResult(bnode.largest.Encode()));
+  ASSERT_TRUE(bIter.SeekResult());
   ASSERT_TRUE(icmp.Compare(bIter.key(), bnode.largest.Encode()) == 0);
 
 

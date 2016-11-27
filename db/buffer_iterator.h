@@ -43,12 +43,8 @@ class BufferIterator : public Iterator {
     index_++;
   }
 
-  bool SeekResult(Slice target){
-  	if (!Valid()) return false;
-	Slice smallest = (buffer_->nodes)[index_].smallest.Encode();
-	Slice largest = (buffer_->nodes)[index_].largest.Encode();
-	return (icmp_->InternalKeyComparator::Compare(smallest, target) <= 0)
-		&& (icmp_->InternalKeyComparator::Compare(largest, target) >= 0); 
+  bool SeekResult(){
+	  return Valid();
   }
 
   virtual void Prev() {
@@ -57,12 +53,13 @@ class BufferIterator : public Iterator {
   }
 
   virtual void Seek(const Slice& target){
-    index_ = FindNode(icmp_, buffer_->nodes, target);
+    FindLatestNode(icmp_, buffer_->nodes, target);
+    //index_ = FindNode(icmp_, buffer_->nodes, target);
   }
   
   //SeekToFirst do not promise iterator is valid
   virtual void SeekToFirst() {
-	  index_ = 0;
+	index_ = 0;
   }
 
   virtual void SeekToLast() { index_ = ((buffer_->nodes).empty()) ? 0 : (buffer_->nodes).size() - 1; }
@@ -70,7 +67,17 @@ class BufferIterator : public Iterator {
 
  private:
 
-  //require: buffer is sorted.
+  void FindLatestNode(const InternalKeyComparator* icmp, const std::vector<BufferNode>& nodes, const Slice& key) {
+  	for (SeekToLast();Valid();Prev()) {
+	  const BufferNode& node = nodes[index_];	
+	  if ((icmp->Compare(node.largest.Encode(), key) >= 0) 
+			  && (icmp->Compare(node.smallest.Encode(), key) <= 0))	  
+		  return;
+	}
+	  
+  }
+
+/*  
   int FindNode(const InternalKeyComparator* icmp, const std::vector<BufferNode>& nodes, const Slice& key) {
     //binary search
     uint32_t left = 0;
@@ -88,7 +95,7 @@ class BufferIterator : public Iterator {
 	}
 	return right;
   }
-
+*/
   Buffer* buffer_;
   uint32_t index_;
   InternalKeyComparator* icmp_;
