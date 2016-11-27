@@ -151,8 +151,15 @@ void BufferNodeIterator::SeekToLast() { iterator_->Seek((buffernode_->largest).E
 
 class BufferTwoLevelIterator : public Iterator {
  public:
-  BufferTwoLevelIterator(BufferNode* buffernode, TwoLevelIterator* iterator)
-      :buffernode_(buffernode), iterator_(iterator) { }
+  BufferTwoLevelIterator(
+		  BufferIterator* index_iter_,
+		  BlockFunction block_function,
+		  const ReadOptions)
+      : block_function_(block_function),
+	    options_(options),
+		index_iter_(index_iter_),
+		data_iter_(NULL) {
+}
 
   virtual bool Valid() const;
 
@@ -173,39 +180,85 @@ class BufferTwoLevelIterator : public Iterator {
 
  private:
 
+  void MaybeGotoNextNode();
+  void MaybeGotoPrevNode();
+  void InitDataBlock();
 
+  BlockFunction block_function_;
+  BufferIterator* index_iter_;
+  BufferNodeIterator* data_iter_;
 
 };
 
 
 
 bool BufferTwoLevelIterator::SeekResult(){
-
+  //if index_iter is unvalid, search do not end
+  return index_iter_.SeekResult();
 }
 
 
-bool BufferTwoLevelIterator::Valid() const{
-
+bool BufferTwoLevelIterator::Valid() const {
+  if (data_iter == NULL) return false;	
+  return data_iter_.Valid();
 }
 
 Slice BufferTwoLevelIterator::key() const {
-
+  assert(Valid());
+  return data_iter_.key();
 }
 
 void BufferTwoLevelIterator::Next() {
-
+  assert(Valid());
+  data_iter_.Next();
+  MaybeGotoNextNode();
 }
 
 void BufferTwoLevelIterator::Prev() {
-
+  assert(Valid());
+  data_iter_.Prev();
+  MaybeGotoPrevNode();
 }
 
 void BufferTwoLevelIterator::Seek(const Slice& target) {
+  //search backwards for latest key
+  bool start = false;
+  do {
+    if (!start) {
+	  index_iter_.SeekToLast();
+	  start = true;
+	}  
+	else
+	  index_iter_.Prev();
+    index_iter_.SeekForHere(target);
+	if (!index_iter_.SeekResult()){
+	  data_iter = NULL;
+	  return;
+	}
+	InitDataBlock();
+	data_iter_.Seek(target);
+  } while (!data_iter_.SeekResult())
 }
 
-void BufferTwoLevelIterator::SeekToFirst() {  }
+void BufferTwoLevelIterator::SeekToFirst() {
+  index_iter_.SeekToFirst();
+  InitDataBlock();
+  if (data_iter_ != NULL) data_iter_.SeekToFirst();
+}
   
-void BufferTwoLevelIterator::SeekToLast() {  }
+void BufferTwoLevelIterator::SeekToLast() { 
+  index_iter_.SeekToLast();
+  InitDataBlock();
+  if (data_iter_ != NULL) data_iter_.SeekToLast();
+}
+
+void BufferTwoLevelIterator::MaybeGotoNextNode(){
+  
+}
+
+void BufferTwoLevelIterator::MaybeGotoPrevNode(){
+
+}
 
 
 TwoLevelIterator::TwoLevelIterator(

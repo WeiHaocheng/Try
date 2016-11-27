@@ -29,6 +29,8 @@ class BufferIterator : public Iterator {
   
   //never use this function
   virtual Status status() const { return Status::OK(); }
+
+
   
   //never use this function 
   virtual Slice value() const { return Slice(""); }
@@ -53,10 +55,15 @@ class BufferIterator : public Iterator {
   }
 
   virtual void Seek(const Slice& target){
+	SeekToLast();  
     FindLatestNode(icmp_, buffer_->nodes, target);
     //index_ = FindNode(icmp_, buffer_->nodes, target);
   }
   
+  void SeekForHere(const Slice& target){
+    FindLatestNode(icmp_, buffer_->nodes, target);
+  }
+
   //SeekToFirst do not promise iterator is valid
   virtual void SeekToFirst() {
 	index_ = 0;
@@ -68,7 +75,7 @@ class BufferIterator : public Iterator {
  private:
 
   void FindLatestNode(const InternalKeyComparator* icmp, const std::vector<BufferNode>& nodes, const Slice& key) {
-  	for (SeekToLast();Valid();Prev()) {
+  	for (;Valid();Prev()) {
 	  const BufferNode& node = nodes[index_];	
 	  if ((icmp->Compare(node.largest.Encode(), key) >= 0) 
 			  && (icmp->Compare(node.smallest.Encode(), key) <= 0))	  
