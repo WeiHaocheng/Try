@@ -8,7 +8,7 @@
 #include "table/block.h"
 #include "table/format.h"
 #include "table/iterator_wrapper.h"
-#include "db/version_edit.h"
+#include "db/version_set.h"
 #include "leveldb/slice.h"
 #include <assert.h>
 
@@ -152,12 +152,14 @@ void BufferNodeIterator::SeekToLast() { iterator_->Seek((buffernode_->largest).E
 class BufferTwoLevelIterator : public Iterator {
  public:
   BufferTwoLevelIterator(
-		  BufferIterator* index_iter_,
+		  BufferIterator* index_iter,
 		  BlockFunction block_function,
+		  void* arg,
 		  const ReadOptions)
       : block_function_(block_function),
+	    arg_(arg),
 	    options_(options),
-		index_iter_(index_iter_),
+		index_iter_(index_iter),
 		data_iter_(NULL) {
 }
 
@@ -177,6 +179,11 @@ class BufferTwoLevelIterator : public Iterator {
 
   bool SeekResult();
 
+  virtual ~BufferTwoLevelIterator(){
+	//about data_iter??
+    delete index_iter_;
+  }
+
 
  private:
 
@@ -187,6 +194,9 @@ class BufferTwoLevelIterator : public Iterator {
   BlockFunction block_function_;
   BufferIterator* index_iter_;
   BufferNodeIterator* data_iter_;
+  void* arg_;
+  const ReadOptions options_;
+
 
 };
 

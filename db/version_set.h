@@ -27,6 +27,7 @@ namespace leveldb {
 
 namespace log { class Writer; }
 
+class BufferTwoLevelIterator;
 class Compaction;
 class Iterator;
 class MemTable;
@@ -120,13 +121,31 @@ class Version {
 
   // Return a human readable string that describes this version's contents.
   std::string DebugString() const;
+  
+  //not finished
+  BufferTwoLevelIterator NewBufferTwoLevelIterator(
+		  Buffer* buffer,
+          const ReadOptions& options
+		  ){
+    
+	return BufferTwoLevelIterator(
+			new BufferIterator(buffer, vset_->icmp_, new LevelFileNumIterator(vset_->icmp_, &files_[level])),
+            &GetFileIterator,
+			vset_->table_cache_,
+			options
+			);
+  }
 
  private:
   friend class Compaction;
   friend class VersionSet;
+  friend class BufferTwoLevelIterator;
 
   class LevelFileNumIterator;
   Iterator* NewConcatenatingIterator(const ReadOptions&, int level) const;
+  
+  //not finished
+  Iterator* NewTableIterator();
 
   // Call func(arg, level, f) for every file that overlaps user_key in
   // order from newest to oldest.  If an invocation of func returns

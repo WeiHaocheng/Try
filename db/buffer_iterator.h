@@ -13,12 +13,17 @@
 
 namespace leveldb {
 
+class Version::LevelFileNumIterator;
+
 
 class BufferIterator : public Iterator {
  public:
   //when index_ == buffer->nodes.size(), then index_ is unvalid
-  BufferIterator(Buffer* buffer, InternalKeyComparator* icmp)
-      :buffer_(buffer), icmp_(icmp), index_((buffer->nodes).size()) { }
+  BufferIterator(Buffer* buffer, InternalKeyComparator* icmp, Version::LevelFileNumIterator* filenum_iter)
+      :buffer_(buffer),
+	  icmp_(icmp),
+      filenum_iter_(filenum_iter),
+	  index_((buffer->nodes).size()) { }
 
   virtual bool Valid() const { return index_ < (buffer_->nodes).size(); } 
 
@@ -71,6 +76,13 @@ class BufferIterator : public Iterator {
 
   virtual void SeekToLast() { index_ = ((buffer_->nodes).empty()) ? 0 : (buffer_->nodes).size() - 1; }
 
+  virtual ~BufferIterator(){
+    delete file_iter_;
+  }
+
+ Version::LevelFileNumIterator* GetFileIter() {
+   return filenum_iter_;
+ }
 
  private:
 
@@ -103,6 +115,7 @@ class BufferIterator : public Iterator {
 	return right;
   }
 */
+  LevelFileNumIterator filenum_iter_;
   Buffer* buffer_;
   uint32_t index_;
   InternalKeyComparator* icmp_;
