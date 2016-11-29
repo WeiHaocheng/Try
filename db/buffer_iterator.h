@@ -80,7 +80,7 @@ class BufferIterator : public Iterator {
     delete file_iter_;
   }
 
- Version::LevelFileNumIterator* GetFileIter() {
+ Version::LevelFileNumIterator* GetFileNumIter() {
    return filenum_iter_;
  }
 

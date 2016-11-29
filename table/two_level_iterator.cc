@@ -97,6 +97,10 @@ class BufferNodeIterator : public Iterator {
 
   bool SeekResult();
 
+  ~BufferNodeIterator(){
+    delete iterator_;
+  }
+
 
  private:
   BufferNode* buffernode_;
@@ -160,6 +164,7 @@ class BufferTwoLevelIterator : public Iterator {
 	    arg_(arg),
 	    options_(options),
 		index_iter_(index_iter),
+		twolevel_iter_(NULL),
 		data_iter_(NULL) {
 }
 
@@ -180,7 +185,7 @@ class BufferTwoLevelIterator : public Iterator {
   bool SeekResult();
 
   virtual ~BufferTwoLevelIterator(){
-	//about data_iter??
+	delete data_iter_;
     delete index_iter_;
   }
 
@@ -194,39 +199,57 @@ class BufferTwoLevelIterator : public Iterator {
   BlockFunction block_function_;
   BufferIterator* index_iter_;
   BufferNodeIterator* data_iter_;
+  TwoLevelIterator* twolevel_iter_;
   void* arg_;
   const ReadOptions options_;
 
 
 };
 
+void BufferTwoLevelIterator::InitDataBlock(){
+  if (!index_iter_->Valid()) {
+    delete data_iter_;
+	data_iter_ = NULL;
+  } else {
+    Slice handle = index_iter_->GetFileNumIter->value();
+	if (data_iter_ != NULL && handle.compare(data_block_handle_) == 0) {
+	
+	} else {
+	  Iterator* iter = (*block_function_)(arg_, options_, handle);
+	  data_block_handle_.assign(handle.data(), handle.size());
+	  twolevel_iter_ = dynamic_cast<TwoLevelIterator*>(iter);
+      data_iter_ = new BufferNodeIterator(&(index_iter_.Node()), twoleveliter_);
+	}
+  }
+   
+}
 
 
 bool BufferTwoLevelIterator::SeekResult(){
   //if index_iter is unvalid, search do not end
-  return index_iter_.SeekResult();
+  return index_iter_->SeekResult();
 }
 
 
 bool BufferTwoLevelIterator::Valid() const {
   if (data_iter == NULL) return false;	
-  return data_iter_.Valid();
+  return data_iter_->Valid();
 }
 
 Slice BufferTwoLevelIterator::key() const {
   assert(Valid());
-  return data_iter_.key();
+  return data_iter_->key();
 }
 
 void BufferTwoLevelIterator::Next() {
   assert(Valid());
-  data_iter_.Next();
+  data_iter_->Next();
   MaybeGotoNextNode();
 }
 
 void BufferTwoLevelIterator::Prev() {
   assert(Valid());
-  data_iter_.Prev();
+  data_iter_->Prev();
   MaybeGotoPrevNode();
 }
 
@@ -235,31 +258,32 @@ void BufferTwoLevelIterator::Seek(const Slice& target) {
   bool start = false;
   do {
     if (!start) {
-	  index_iter_.SeekToLast();
+	  index_iter_->SeekToLast();
 	  start = true;
 	}  
 	else
-	  index_iter_.Prev();
-    index_iter_.SeekForHere(target);
-	if (!index_iter_.SeekResult()){
+	  index_iter_->Prev();
+    index_iter_->SeekForHere(target);
+	if (!index_iter_->SeekResult()){
 	  data_iter = NULL;
 	  return;
 	}
 	InitDataBlock();
-	data_iter_.Seek(target);
-  } while (!data_iter_.SeekResult())
+	data_iter_->Seek(target);
+  } while (!data_iter_->SeekResult())
 }
 
 void BufferTwoLevelIterator::SeekToFirst() {
-  index_iter_.SeekToFirst();
+  index_iter_->SeekToFirst();
+  index_iter_->GetFileNumIter()->
   InitDataBlock();
-  if (data_iter_ != NULL) data_iter_.SeekToFirst();
+  if (data_iter_ != NULL) data_iter_->SeekToFirst();
 }
   
 void BufferTwoLevelIterator::SeekToLast() { 
-  index_iter_.SeekToLast();
+  index_iter_->SeekToLast();
   InitDataBlock();
-  if (data_iter_ != NULL) data_iter_.SeekToLast();
+  if (data_iter_ != NULL) data_iter_->SeekToLast();
 }
 
 void BufferTwoLevelIterator::MaybeGotoNextNode(){
