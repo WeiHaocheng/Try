@@ -22,6 +22,8 @@
 
 namespace leveldb {
 
+class BufferTwoLevelIterator;
+
 static int TargetFileSize(const Options* options) {
   return options->max_file_size;
 }
@@ -203,6 +205,9 @@ class Version::LevelFileNumIterator : public Iterator {
     return Slice(value_buf_, sizeof(value_buf_));
   }
   virtual Status status() const { return Status::OK(); }
+
+  BufferTwoLevelIterator NewBufferTwoLevelIterator();
+
  private:
   const InternalKeyComparator icmp_;
   const std::vector<FileMetaData*>* const flist_;
@@ -232,6 +237,10 @@ Iterator* Version::NewConcatenatingIterator(const ReadOptions& options,
       new LevelFileNumIterator(vset_->icmp_, &files_[level]),
       &GetFileIterator, vset_->table_cache_, options);
 }
+
+
+
+
 
 void Version::AddIterators(const ReadOptions& options,
                            std::vector<Iterator*>* iters) {

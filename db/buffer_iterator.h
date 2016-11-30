@@ -13,37 +13,54 @@
 
 namespace leveldb {
 
-class Version::LevelFileNumIterator;
 
 
 class BufferIterator : public Iterator {
  public:
   //when index_ == buffer->nodes.size(), then index_ is unvalid
-  BufferIterator(Buffer* buffer, InternalKeyComparator* icmp, Version::LevelFileNumIterator* filenum_iter)
+  BufferIterator(Buffer* buffer, InternalKeyComparator icmp, vector<FileMetaData*>* flist)
       :buffer_(buffer),
 	  icmp_(icmp),
-      filenum_iter_(filenum_iter),
+      flist_(flist),
 	  index_((buffer->nodes).size()) { }
 
   virtual bool Valid() const { return index_ < (buffer_->nodes).size(); } 
 
   virtual Slice key() const {
     assert(Valid());
-	return (buffer_->nodes)[index_].largest.Encode();
+	  return (buffer_->nodes)[index_].largest.Encode();
   }
   
-  //never use this function
-  virtual Status status() const { return Status::OK(); }
-
-
-  
-  //never use this function 
-  virtual Slice value() const { return Slice(""); }
-
-  BufferNode& Node() const {
-	assert(Valid());
-    return (buffer_->nodes)[index_];
+  virtual Slice value() const {
+    assert(Valid());
+    for (int i = 0;i < flist_->size();++i){
+      if (buffer_[index_]->number == flist_[i]->number){
+        EncodeFixed64(value_buf_, (*flist_)[i]->number);
+        EncodeFixed64(value_buf_+8, (*flist_)[i]->file_size);
+        return Slice(value_buf_, sizeof(value_buf_));
+      }
+    }
+    return Slice("");
+    
   }
+
+
+  FileMetaData* File() const {
+    assert(valid());
+    for (int i = 0;i < flist_->size();++i){
+      if (buffer_[index_]->number == flist_[i]->number)
+        return flist_[index];
+    }
+    return NULL;
+  }
+
+
+  BufferNode* Node() const {
+	  assert(Valid());
+    return &((buffer_->nodes)[index_]);
+  }
+
+
 
   virtual void Next() { 
     assert(Valid());
@@ -60,7 +77,7 @@ class BufferIterator : public Iterator {
   }
 
   virtual void Seek(const Slice& target){
-	SeekToLast();  
+	  SeekToLast();  
     FindLatestNode(icmp_, buffer_->nodes, target);
     //index_ = FindNode(icmp_, buffer_->nodes, target);
   }
@@ -77,27 +94,23 @@ class BufferIterator : public Iterator {
   virtual void SeekToLast() { index_ = ((buffer_->nodes).empty()) ? 0 : (buffer_->nodes).size() - 1; }
 
   virtual ~BufferIterator(){
-    delete file_iter_;
   }
 
- Version::LevelFileNumIterator* GetFileNumIter() {
-   return filenum_iter_;
- }
 
  private:
 
-  void FindLatestNode(const InternalKeyComparator* icmp, const std::vector<BufferNode>& nodes, const Slice& key) {
+  void FindLatestNode(const InternalKeyComparator icmp, const std::vector<BufferNode>& nodes, const Slice& key) {
   	for (;Valid();Prev()) {
 	  const BufferNode& node = nodes[index_];	
-	  if ((icmp->Compare(node.largest.Encode(), key) >= 0) 
-			  && (icmp->Compare(node.smallest.Encode(), key) <= 0))	  
+	  if ((icmp.Compare(node.largest.Encode(), key) >= 0) 
+			  && (icmp.Compare(node.smallest.Encode(), key) <= 0))	  
 		  return;
 	}
 	  
   }
 
 /*  
-  int FindNode(const InternalKeyComparator* icmp, const std::vector<BufferNode>& nodes, const Slice& key) {
+  int FindNode(const InternalKeyComparator icmp, const std::vector<BufferNode>& nodes, const Slice& key) {
     //binary search
     uint32_t left = 0;
 	uint32_t right = nodes.size();
@@ -115,10 +128,15 @@ class BufferIterator : public Iterator {
 	return right;
   }
 */
-  LevelFileNumIterator filenum_iter_;
+
+
+  // Backing store for value().  Holds the file number and size.
+  mutable char value_buf_[16];
+
+  std::vector<FileMetaData*>* const flist_;
   Buffer* buffer_;
   uint32_t index_;
-  InternalKeyComparator* icmp_;
+  InternalKeyComparator icmp_;
   //Intentionally copyable
 };
 

@@ -6,6 +6,7 @@
 
 #include "leveldb/table.h"
 #include "table/block.h"
+#include "db/buffer_iterator.h"
 #include "table/format.h"
 #include "table/iterator_wrapper.h"
 #include "db/version_set.h"
@@ -78,7 +79,7 @@ class TwoLevelIterator: public Iterator {
 
 class BufferNodeIterator : public Iterator {
  public:
-  BufferNodeIterator(BufferNode* buffernode, TwoLevelIterator* iterator)
+  BufferNodeIterator(BufferNode* buffernode, Iterator* iterator)
       :buffernode_(buffernode), iterator_(iterator) { }
 
   virtual bool Valid() const;
@@ -97,14 +98,14 @@ class BufferNodeIterator : public Iterator {
 
   bool SeekResult();
 
-  ~BufferNodeIterator(){
+  virtual ~BufferNodeIterator(){
     delete iterator_;
   }
 
 
  private:
   BufferNode* buffernode_;
-  TwoLevelIterator* iterator_;
+  Iterator* iterator_;
   bool seek_result;
 };
 
@@ -141,7 +142,7 @@ void BufferNodeIterator::Seek(const Slice& target) {
   seek_result = true;
   if((target.compare(buffernode_->smallest.Encode()) < 0) 
       && (target.compare(buffernode_->largest.Encode()) > 0)){
-	seek_result = false;
+	  seek_result = false;
     return;
   }
   iterator_->Seek(target);
@@ -164,7 +165,6 @@ class BufferTwoLevelIterator : public Iterator {
 	    arg_(arg),
 	    options_(options),
 		index_iter_(index_iter),
-		twolevel_iter_(NULL),
 		data_iter_(NULL) {
 }
 
@@ -185,7 +185,7 @@ class BufferTwoLevelIterator : public Iterator {
   bool SeekResult();
 
   virtual ~BufferTwoLevelIterator(){
-	delete data_iter_;
+	  delete data_iter_;
     delete index_iter_;
   }
 
@@ -199,26 +199,26 @@ class BufferTwoLevelIterator : public Iterator {
   BlockFunction block_function_;
   BufferIterator* index_iter_;
   BufferNodeIterator* data_iter_;
-  TwoLevelIterator* twolevel_iter_;
   void* arg_;
   const ReadOptions options_;
-
+  std::string data_block_handle_;
 
 };
 
 void BufferTwoLevelIterator::InitDataBlock(){
   if (!index_iter_->Valid()) {
     delete data_iter_;
-	data_iter_ = NULL;
+	  data_iter_ = NULL;
   } else {
-    Slice handle = index_iter_->GetFileNumIter->value();
+    Slice handle = index_iter_->value();
 	if (data_iter_ != NULL && handle.compare(data_block_handle_) == 0) {
 	
 	} else {
 	  Iterator* iter = (*block_function_)(arg_, options_, handle);
 	  data_block_handle_.assign(handle.data(), handle.size());
-	  twolevel_iter_ = dynamic_cast<TwoLevelIterator*>(iter);
-      data_iter_ = new BufferNodeIterator(&(index_iter_.Node()), twoleveliter_);
+    assert(twolevel_iter_ != NULL);
+      delete data_iter_;
+      data_iter_ = new BufferNodeIterator(index_iter_.Node(), iter);
 	}
   }
    
@@ -227,7 +227,9 @@ void BufferTwoLevelIterator::InitDataBlock(){
 
 bool BufferTwoLevelIterator::SeekResult(){
   //if index_iter is unvalid, search do not end
-  return index_iter_->SeekResult();
+  if (!index_iter_->SeekResult()) return false;
+  return data_iter_->SeekResult();
+
 }
 
 
@@ -260,22 +262,22 @@ void BufferTwoLevelIterator::Seek(const Slice& target) {
     if (!start) {
 	  index_iter_->SeekToLast();
 	  start = true;
-	}  
-	else
-	  index_iter_->Prev();
-    index_iter_->SeekForHere(target);
-	if (!index_iter_->SeekResult()){
-	  data_iter = NULL;
-	  return;
-	}
-	InitDataBlock();
-	data_iter_->Seek(target);
+	  }  
+	  else
+	    index_iter_->Prev();
+      index_iter_->SeekForHere(target);
+	  if (!index_iter_->SeekResult()){
+      delete data_iter_;
+	    data_iter = NULL;
+	    return;
+	  }
+	  InitDataBlock();
+	  data_iter_->Seek(target);
   } while (!data_iter_->SeekResult())
 }
 
 void BufferTwoLevelIterator::SeekToFirst() {
   index_iter_->SeekToFirst();
-  index_iter_->GetFileNumIter()->
   InitDataBlock();
   if (data_iter_ != NULL) data_iter_->SeekToFirst();
 }
@@ -287,11 +289,21 @@ void BufferTwoLevelIterator::SeekToLast() {
 }
 
 void BufferTwoLevelIterator::MaybeGotoNextNode(){
-  
+  assert(data_iter_ != NULL)
+  if (!data_iter_->Valid()) {
+    index_iter_->Next();
+    InitDataBlock();
+    if (data_iter_ != NULL) data_iter_->SeekToFirst();
+  }
 }
 
 void BufferTwoLevelIterator::MaybeGotoPrevNode(){
-
+  assert(data_iter_ != NULL)
+  if (!data_iter_->Valid()) {
+    index_iter_->Prev();
+    InitDataBlock();
+    if (data_iter_ != NULL) data_iter_->SeekToLast();
+  }
 }
 
 
