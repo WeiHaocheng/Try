@@ -21,6 +21,7 @@ bool nodecompare(const BufferNode &a, const BufferNode &b){
 
 class BufferIteratorTest { };
 
+/*
 TEST(BufferIteratorTest, BIteratorEmpty) {
   //empty buffer
   Buffer buffer;
@@ -77,6 +78,8 @@ TEST(BufferIteratorTest, BIteratorInsertAndLookUp){
 
 class BufferNodeIteratorTest { };
 
+*/
+
 /*
  *
 TEST(BufferNodeIteratorTest, BNIteratorEmpty){
@@ -88,6 +91,8 @@ TEST(BufferNodeIteratorTest, BNIteratorInsertAndLoopUp){
 }
 
 */
+
+
 
 }
 
