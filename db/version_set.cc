@@ -20,6 +20,10 @@
 #include "util/coding.h"
 #include "util/logging.h"
 
+#include "leveldb/options.h"
+#include "buffer_iterator.h"
+
+
 namespace leveldb {
 
 static int TargetFileSize(const Options* options) {
@@ -225,6 +229,22 @@ static Iterator* GetFileIterator(void* arg,
                               DecodeFixed64(file_value.data() + 8));
   }
 }
+
+
+//do not forget to delete it after using
+BufferTwoLevelIterator* Version::NewBufferTwoLevelIterator(
+    Buffer* buffer,
+    const ReadOptions& options,
+    int level
+    ){
+  return new BufferTwoLevelIterator(
+    new BufferIterator(buffer, vset_->icmp_, &files_[level]),
+          &GetFileIterator,
+    vset_->table_cache_,
+    options
+    ); 
+}
+
 
 Iterator* Version::NewConcatenatingIterator(const ReadOptions& options,
                                             int level) const {

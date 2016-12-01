@@ -22,6 +22,7 @@
 #include "db/version_edit.h"
 #include "port/port.h"
 #include "port/thread_annotations.h"
+#include "db/buffer_iterator.h"
 
 namespace leveldb {
 
@@ -120,6 +121,8 @@ class Version {
 
   // Return a human readable string that describes this version's contents.
   std::string DebugString() const;
+
+  BufferTwoLevelIterator* NewBufferTwoLevelIterator(Buffer* buffer, const ReadOptions& options ,int level);
 
  private:
   friend class Compaction;
@@ -331,6 +334,7 @@ class VersionSet {
   uint64_t last_sequence_;
   uint64_t log_number_;
   uint64_t prev_log_number_;  // 0 or backing store for memtable being compacted
+
 
   // Opened lazily
   WritableFile* descriptor_file_;

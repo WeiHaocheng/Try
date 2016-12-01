@@ -45,7 +45,8 @@ TESTS = \
 	util/coding_test \
 	util/crc32c_test \
 	util/env_test \
-	util/hash_test
+	util/hash_test \
+	db/buffer_iterator_test
 
 UTILS = \
 	db/db_bench \
@@ -298,6 +299,7 @@ $(SHARED_MEMENVLIB):$(SHARED_MEMENVOBJECTS)
 $(STATIC_OUTDIR)/db_bench:db/db_bench.cc $(STATIC_LIBOBJECTS) $(TESTUTIL)
 	$(CXX) $(LDFLAGS) $(CXXFLAGS) db/db_bench.cc $(STATIC_LIBOBJECTS) $(TESTUTIL) -o $@ $(LIBS)
 
+
 $(STATIC_OUTDIR)/db_bench_sqlite3:doc/bench/db_bench_sqlite3.cc $(STATIC_LIBOBJECTS) $(TESTUTIL)
 	$(CXX) $(LDFLAGS) $(CXXFLAGS) doc/bench/db_bench_sqlite3.cc $(STATIC_LIBOBJECTS) $(TESTUTIL) -o $@ -lsqlite3 $(LIBS)
 
@@ -309,6 +311,9 @@ $(STATIC_OUTDIR)/leveldbutil:db/leveldbutil.cc $(STATIC_LIBOBJECTS)
 
 $(STATIC_OUTDIR)/arena_test:util/arena_test.cc $(STATIC_LIBOBJECTS) $(TESTHARNESS)
 	$(CXX) $(LDFLAGS) $(CXXFLAGS) util/arena_test.cc $(STATIC_LIBOBJECTS) $(TESTHARNESS) -o $@ $(LIBS)
+
+$(STATIC_OUTDIR)/buffer_iterator_test:db/buffer_iterator_test.cc $(STATIC_LIBOBJECTS) $(TESTHARNESS)
+	$(CXX) $(LDFLAGS) $(CXXFLAGS) db/buffer_iterator_test.cc $(STATIC_LIBOBJECTS) $(TESTHARNESS) -o $@ $(LIBS)
 
 $(STATIC_OUTDIR)/autocompact_test:db/autocompact_test.cc $(STATIC_LIBOBJECTS) $(TESTHARNESS)
 	$(CXX) $(LDFLAGS) $(CXXFLAGS) db/autocompact_test.cc $(STATIC_LIBOBJECTS) $(TESTHARNESS) -o $@ $(LIBS)
