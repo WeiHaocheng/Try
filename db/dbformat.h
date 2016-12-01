@@ -16,7 +16,6 @@
 
 namespace leveldb {
 
-
 // Grouping of constants.  We may want to make some of these
 // parameters set via options.
 namespace config {

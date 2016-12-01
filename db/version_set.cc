@@ -20,9 +20,11 @@
 #include "util/coding.h"
 #include "util/logging.h"
 
-namespace leveldb {
+#include "leveldb/options.h"
+#include "buffer_iterator.h"
 
-class BufferTwoLevelIterator;
+
+namespace leveldb {
 
 static int TargetFileSize(const Options* options) {
   return options->max_file_size;
@@ -205,9 +207,6 @@ class Version::LevelFileNumIterator : public Iterator {
     return Slice(value_buf_, sizeof(value_buf_));
   }
   virtual Status status() const { return Status::OK(); }
-
-  BufferTwoLevelIterator NewBufferTwoLevelIterator();
-
  private:
   const InternalKeyComparator icmp_;
   const std::vector<FileMetaData*>* const flist_;
@@ -231,16 +230,28 @@ static Iterator* GetFileIterator(void* arg,
   }
 }
 
+
+//do not forget to delete it after using
+BufferTwoLevelIterator* Version::NewBufferTwoLevelIterator(
+    Buffer* buffer,
+    const ReadOptions& options,
+    int level
+    ){
+  return new BufferTwoLevelIterator(
+    new BufferIterator(buffer, vset_->icmp_, &files_[level]),
+          &GetFileIterator,
+    vset_->table_cache_,
+    options
+    ); 
+}
+
+
 Iterator* Version::NewConcatenatingIterator(const ReadOptions& options,
                                             int level) const {
   return NewTwoLevelIterator(
       new LevelFileNumIterator(vset_->icmp_, &files_[level]),
       &GetFileIterator, vset_->table_cache_, options);
 }
-
-
-
-
 
 void Version::AddIterators(const ReadOptions& options,
                            std::vector<Iterator*>* iters) {

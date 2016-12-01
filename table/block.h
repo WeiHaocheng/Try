@@ -13,10 +13,8 @@ namespace leveldb {
 
 struct BlockContents;
 class Comparator;
-class BufferNodeIterator;
 
 class Block {
-  friend class BufferNodeIterator;
  public:
   // Initialize the block with the specified contents.
   explicit Block(const BlockContents& contents);

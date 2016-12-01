@@ -128,7 +128,7 @@ class DBImpl : public DB {
   const std::string dbname_;
 
   //whc add
-  const std::string ssdname_ = "tmp/vssd/";
+  //const std::string ssdname_ = "tmp/vssd/";
 
   // table_cache_ provides its own synchronization
   TableCache* table_cache_;
